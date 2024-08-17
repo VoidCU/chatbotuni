@@ -96,7 +96,8 @@ def index(request):
 @login_required
 def admin_dashboard(request):
     conversations = Conversation.objects.all().order_by('-date')
-    return render(request, "admin_dashboard.html", {"conversations": conversations})
+    intents = Intent.objects.all()
+    return render(request, "admin_dashboard.html", {"conversations": conversations,'intents': intents})
 
 @login_required
 def get_conversation(request, conversation_id):
@@ -107,3 +108,19 @@ def get_conversation(request, conversation_id):
         })
     except Conversation.DoesNotExist:
         return JsonResponse({'messages': 'Conversation not found.'}, status=404)
+
+
+@csrf_exempt
+def add_example(request):
+    if request.method == 'POST':
+        intent_id = request.POST.get('intent')
+        text = request.POST.get('text')
+
+        try:
+            intent = Intent.objects.get(id=intent_id)
+            Example.objects.create(intent=intent, text=text)
+            return JsonResponse({'success': True})
+        except Intent.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Intent not found'})
+
+    return JsonResponse({'success': False, 'error': 'Invalid request'})

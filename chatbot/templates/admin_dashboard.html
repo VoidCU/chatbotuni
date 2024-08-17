@@ -66,10 +66,10 @@
         }
         .modal-close {
             position: absolute;
-            top: 10px;
-            right: 50px;
+            top: 20px;
+            right: 20px;
             cursor: pointer;
-            font-size: 56px;
+            font-size: 50px;
             color: #aaa;
         }
         .modal-close:hover {
@@ -78,6 +78,14 @@
         .chat-message {
             padding: 10px;
             border-radius: 10px;
+            cursor: pointer;
+        }
+        .chat-message.right {
+            background-color: cyan;
+        }
+        .chat-message.left {
+            background-color: blue;
+            color: white;
         }
     </style>
 </head>
@@ -97,9 +105,29 @@
     <!-- Modal for displaying conversation details -->
     <div id="modal" class="modal">
         <div class="modal-content">
-            <span class="modal-close"  onclick="closeModal()">&times;</span>
+            <span class="modal-close" onclick="closeModal()">&times;</span>
             <h2>Conversation Details</h2>
             <div id="modal-body"></div>
+            <button onclick="closeModal()" style=>Close</button>
+        </div>
+    </div>
+
+    <!-- Modal for adding example -->
+    <div id="example-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeExampleModal()">&times;</span>
+            <h2>Add Example</h2>
+            <form id="example-form">
+                <input type="hidden" id="example-text" name="text">
+                <label for="intent">Select Intent:</label>
+                <select id="intent" name="intent">
+                    {% for intent in intents %}
+                        <option value="{{ intent.id }}">{{ intent.name }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit">Add Example</button>
+                <button type="button" onclick="closeExampleModal()">Cancel</button>
+            </form>
         </div>
     </div>
 
@@ -111,28 +139,58 @@
                     const messages = data.messages.split('<sep>');
                     const modalBody = document.getElementById('modal-body');
                     modalBody.innerHTML = '';
-        
+
                     messages.forEach((message, index) => {
                         const messageElement = document.createElement('div');
                         messageElement.className = 'chat-message';
-                        messageElement.style.backgroundColor = (index % 2 === 0) ? 'gray' : 'blue';
-                        messageElement.style.color = 'white'; // To ensure text is readable
+                        messageElement.className += (index % 2 === 0) ? ' right' : ' left';
                         messageElement.innerHTML = message;
+                        messageElement.onclick = () => openExampleModal(message);
                         modalBody.appendChild(messageElement);
-        
+
                         if (index < messages.length - 1) {
                             const hr = document.createElement('hr');
                             modalBody.appendChild(hr);
                         }
                     });
-        
+
                     document.getElementById('modal').style.display = 'flex';
                 });
         }
-        
+
         function closeModal() {
             document.getElementById('modal').style.display = 'none';
         }
+
+        function openExampleModal(message) {
+            document.getElementById('example-text').value = message;
+            document.getElementById('example-modal').style.display = 'flex';
+        }
+
+        function closeExampleModal() {
+            document.getElementById('example-modal').style.display = 'none';
+        }
+
+        document.getElementById('example-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            fetch('/add_example/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeExampleModal();
+                    alert('Example added successfully');
+                } else {
+                    alert('Failed to add example');
+                }
+            });
+        });
     </script>
 </body>
 </html>
